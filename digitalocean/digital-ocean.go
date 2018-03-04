@@ -3,8 +3,12 @@ package digitalocean
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"path/filepath"
 	"strconv"
 
+	dockerClient "github.com/docker/docker/client"
+	"github.com/docker/go-connections/tlsconfig"
 	"github.com/tmc/scp"
 
 	"github.com/digitalocean/godo/context"
@@ -180,4 +184,31 @@ func CreateDockerDroplet(dropletName string, tags []string, gbSize int, keyGodo 
 	}
 
 	return newDroplet, nil
+}
+
+func ConnectDocker(dockerCertPath string, host string, version string) (*dockerClient.Client, error) {
+	var client *http.Client
+	options := tlsconfig.Options{
+		CAFile:             filepath.Join(dockerCertPath, "ca.pem"),
+		CertFile:           filepath.Join(dockerCertPath, "cert.pem"),
+		KeyFile:            filepath.Join(dockerCertPath, "key.pem"),
+		InsecureSkipVerify: false,
+	}
+	tlsc, err := tlsconfig.Client(options)
+	if err != nil {
+		return nil, err
+	}
+
+	client = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsc,
+		},
+		CheckRedirect: dockerClient.CheckRedirect,
+	}
+
+	cli, err := dockerClient.NewClient(host, version, client, nil)
+	if err != nil {
+		return cli, err
+	}
+	return cli, nil
 }

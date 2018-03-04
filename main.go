@@ -17,6 +17,7 @@ package main
 import (
 	"fmt"
 	"mikrodock-cli/cmd"
+	"mikrodock-cli/logger"
 	"os"
 	"path"
 
@@ -30,10 +31,10 @@ func main() {
 		modeInt := int(0777)
 		errMkdir := os.Mkdir(mikroPath, os.FileMode(modeInt))
 		if errMkdir != nil {
-			fmt.Fprintf(os.Stderr, "Cannot create .mikrodock directory in your home : %s\r\n", errMkdir.Error())
+			logger.Fatal("Loader", fmt.Sprintf("Cannot create .mikrodock directory in your home : %s", errMkdir))
 			os.Exit(1)
 		}
-		fmt.Printf("Config directory created inside your home\r\n")
+		logger.Info("Loader", "Config directory created inside your home")
 	}
 	cmd.Execute()
 }

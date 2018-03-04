@@ -1,4 +1,4 @@
-package generators
+package docker
 
 import (
 	"fmt"
