@@ -2,11 +2,16 @@ package drivers
 
 import (
 	"errors"
+	"io"
+	"os"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // BaseDriver is a common structure for drivers
 type BaseDriver struct {
 	IPAddress   string
+	MachineID   int
 	MachineName string
 	SSHUser     string
 	SSHPort     string
@@ -66,6 +71,14 @@ func (d *BaseDriver) SSHCommand(cmd string) (string, string, error) {
 	return "", "", errors.New("Base driver cannot exec SSH commands")
 }
 
+func (d *BaseDriver) SSHShell() error {
+	return errors.New("Base driver cannot create SSH Shells")
+}
+
 func (d *BaseDriver) CopyFile(source string, destination string) error {
+	return errors.New("Base driver cannot copy files")
+}
+
+func (d *BaseDriver) Copy(size int64, mode os.FileMode, fileName string, contents io.Reader, destinationPath string, session *ssh.Session) error {
 	return errors.New("Base driver cannot copy files")
 }

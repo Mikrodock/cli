@@ -2,12 +2,13 @@ package provision
 
 import (
 	"errors"
+	"fmt"
 	"mikrodock-cli/drivers"
 	"mikrodock-cli/utils"
 	"net/http"
 	"path/filepath"
 
-	dockerClient "github.com/docker/docker/client"
+	dockerClientAPI "github.com/docker/docker/client"
 
 	"github.com/docker/go-connections/tlsconfig"
 )
@@ -16,9 +17,11 @@ type Provider interface {
 	MatchOS(osType utils.OSType) bool
 	DetectDocker() (bool, error)
 	InstallDocker() error
-	ConfigureDocker() error
+	InstallPackage(pkgName string) error
+	ConfigureDocker(additionnalConfig string) error
 	StartDocker() error
 	StopDocker() error
+	CreateDirectory(path string) error
 	SetDriver(driver drivers.Driver)
 	GetBaseProvider() *BaseProvider
 }
@@ -29,6 +32,10 @@ type BaseProvider struct {
 
 func (pb *BaseProvider) MatchOS(osType utils.OSType) bool {
 	return false
+}
+
+func (pb *BaseProvider) CreateDirectory(path string) error {
+	return errors.New("BaseProvider cannot be used")
 }
 
 func (pb *BaseProvider) DetectDocker() (bool, error) {
@@ -59,12 +66,12 @@ func (pb *BaseProvider) GetBaseProvider() *BaseProvider {
 	return pb
 }
 
-func (pb *BaseProvider) ConnectDocker(dockerCertPath string) (*dockerClient.Client, error) {
+func (pb *BaseProvider) ConnectDocker(partikleCertPath string, dockerCertPath string) (*dockerClientAPI.Client, error) {
 	var client *http.Client
 	options := tlsconfig.Options{
-		CAFile:             filepath.Join(dockerCertPath, "ca.pem"),
-		CertFile:           filepath.Join(dockerCertPath, "cert.pem"),
-		KeyFile:            filepath.Join(dockerCertPath, "key.pem"),
+		CAFile:             filepath.Join(dockerCertPath, "ca.cert"),
+		CertFile:           filepath.Join(partikleCertPath, "cert.pem"),
+		KeyFile:            filepath.Join(partikleCertPath, "key.pem"),
 		InsecureSkipVerify: false,
 	}
 	tlsc, err := tlsconfig.Client(options)
@@ -76,10 +83,17 @@ func (pb *BaseProvider) ConnectDocker(dockerCertPath string) (*dockerClient.Clie
 		Transport: &http.Transport{
 			TLSClientConfig: tlsc,
 		},
-		CheckRedirect: dockerClient.CheckRedirect,
 	}
 
-	cli, err := dockerClient.NewClient(pb.Driver.GetDockerURL(), "1.27", client, nil)
+	headers := make(map[string]string)
+
+	if pb.Driver == nil {
+		fmt.Println("Driver == nil!!!")
+	}
+
+	driverURL := pb.Driver.GetDockerURL()
+
+	cli, err := dockerClientAPI.NewClient(driverURL, "1.27", client, headers)
 	if err != nil {
 		return cli, err
 	}

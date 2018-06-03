@@ -33,11 +33,18 @@ func (up *UbuntuProvider) DetectDocker() (bool, error) {
 }
 
 func (up *UbuntuProvider) InstallDocker() error {
-	_, _, err := up.Driver.SSHCommand("apt-get -y install docker")
+	_, _, err := up.Driver.SSHCommand("apt-get update &&& apt-get -y install docker")
 	return err
 }
 
-func (up *UbuntuProvider) ConfigureDocker() error {
+func (up *UbuntuProvider) InstallPackage(pkgName string) error {
+	_, _, err := up.Driver.SSHCommand("apt-get update && apt-get -y install powerdns")
+	return err
+}
+
+func (up *UbuntuProvider) ConfigureDocker(additionnalConfig string) error {
+
+	fmt.Printf("Additionnal config : %s \n", additionnalConfig)
 
 	// TODO : Add labels, registries, flags and env
 
@@ -56,7 +63,10 @@ func (up *UbuntuProvider) ConfigureDocker() error {
 --tlsverify
 --tlscacert /etc/docker/ca.cert
 --tlscert /etc/docker/cert.pem
---tlskey /etc/docker/key.pem'`
+--tlskey /etc/docker/key.pem
+` + additionnalConfig + `'`
+
+	fmt.Printf("Total config : %s \n", dockerConf)
 
 	confCmd := fmt.Sprintf("printf %%s \"%s\" | tee /etc/default/docker", dockerConf)
 
@@ -81,4 +91,10 @@ func (up *UbuntuProvider) GetBaseProvider() *BaseProvider {
 
 func (up *UbuntuProvider) SetDriver(d drivers.Driver) {
 	up.Driver = d
+	up.BaseProvider.Driver = d
+}
+
+func (up *UbuntuProvider) CreateDirectory(path string) error {
+	_, _, err := up.Driver.SSHCommand("mkdir -p " + path)
+	return err
 }

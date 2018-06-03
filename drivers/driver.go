@@ -1,5 +1,12 @@
 package drivers
 
+import (
+	"io"
+	"os"
+
+	"golang.org/x/crypto/ssh"
+)
+
 type SSHSettings struct {
 	IPAddress string
 	Port      string
@@ -22,10 +29,13 @@ type Driver interface {
 	// GetDockerURL returns the Docker Connection url
 	GetDockerURL() string
 
+	SSHShell() error
+
 	GetState() (State, error)
 	WaitState(state State, timeout int) (bool, error)
 
 	GetBaseDriver() *BaseDriver
+	SetBaseDriver(base BaseDriver)
 
 	Kill() error
 	Destroy() error
@@ -35,4 +45,5 @@ type Driver interface {
 
 	SSHCommand(cmd string) (string, string, error)
 	CopyFile(source string, destination string) error
+	Copy(size int64, mode os.FileMode, fileName string, contents io.Reader, destinationPath string, session *ssh.Session) error
 }

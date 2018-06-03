@@ -37,6 +37,7 @@ var initCmd = &cobra.Command{
 		config := make(map[string]string)
 		config["access-token"] = doToken
 		cl := cluster.Cluster{
+			Name:      args[0],
 			DeployDir: depDir,
 			Driver: cluster.ClusterDriver{
 				Config:     config,

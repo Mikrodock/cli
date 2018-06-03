@@ -1,12 +1,17 @@
 package drivers
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
 	"mikrodock-cli/logger"
 	mSSSH "mikrodock-cli/utils/mssh"
+	"os"
 	"time"
 
 	"github.com/tmc/scp"
@@ -18,7 +23,7 @@ import (
 )
 
 const (
-	DefaultRegion string = "lon1"
+	DefaultRegion string = "ams3"
 	DefaultSize   string = "1gb"
 )
 
@@ -55,7 +60,7 @@ func (d *DigitalOceanDriver) PreCreate(conf map[string]interface{}) error {
 		return errors.New("No name provided")
 	}
 
-	d.MachineName = conf["name"].(string)
+	d.BaseDriver.MachineName = conf["name"].(string)
 	d.RawConfig = conf
 
 	if key == nil {
@@ -65,7 +70,7 @@ func (d *DigitalOceanDriver) PreCreate(conf map[string]interface{}) error {
 		pubString := string(keyBytes)
 		// We need to upload the key first
 		request := &godo.KeyCreateRequest{
-			Name:      d.MachineName,
+			Name:      d.BaseDriver.MachineName,
 			PublicKey: pubString,
 		}
 		newKey, _, err := client.Keys.Create(context.TODO(), request)
@@ -92,7 +97,7 @@ func (d *DigitalOceanDriver) Create() error {
 
 	var name, region, size string
 
-	name = d.RawConfig["name"].(string)
+	name = d.BaseDriver.MachineName
 
 	if d.RawConfig["region"] == nil {
 		region = DefaultRegion
@@ -132,6 +137,7 @@ func (d *DigitalOceanDriver) Create() error {
 	}
 
 	d.DropletID = drop.ID
+	d.BaseDriver.MachineID = drop.ID
 
 	okState, err := d.WaitState(Running, 20)
 	if err != nil {
@@ -236,7 +242,64 @@ func (d *DigitalOceanDriver) sshConnect() error {
 	return _err
 }
 
+func (d *DigitalOceanDriver) SSHShell() error {
+	if d.sshClient == nil {
+		err := d.sshConnect()
+		if err != nil {
+			return err
+		}
+	}
+	session, err := d.sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+	in, _ := session.StdinPipe()
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          0,     // disable echoing
+		ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+	}
+
+	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+		log.Fatalf("request for pseudo terminal failed: %s", err)
+	}
+
+	if err := session.Shell(); err != nil {
+		log.Fatalf("failed to start shell: %s", err)
+	}
+
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		str, _ := reader.ReadString('\n')
+		fmt.Fprint(in, str)
+	}
+
+	return nil
+}
+
+func (d *DigitalOceanDriver) Copy(size int64, mode os.FileMode, fileName string, contents io.Reader, destinationPath string, session *ssh.Session) error {
+	logger.Debug("DigitalOceanDriver", "Copying to remote "+fileName)
+	if d.sshClient == nil {
+		err := d.sshConnect()
+		if err != nil {
+			return err
+		}
+	}
+	sess, err := d.sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer sess.Close()
+
+	return scp.Copy(size, mode, fileName, contents, destinationPath, sess)
+}
+
 func (d *DigitalOceanDriver) CopyFile(source string, destination string) error {
+	logger.Debug("DigitalOceanDriver", "Copying local file "+source+" to remote "+destination)
 	if d.sshClient == nil {
 		err := d.sshConnect()
 		if err != nil {
@@ -279,7 +342,31 @@ func (d *DigitalOceanDriver) Kill() error {
 }
 
 func (d *DigitalOceanDriver) Destroy() error {
-	panic("not implemented")
+	client, err := d.getClient()
+	if err != nil {
+		return err
+	}
+	res, err := client.Droplets.Delete(context.TODO(), d.DropletID)
+	if err != nil {
+		fmt.Printf("%#v\n", d.BaseDriver)
+		fmt.Println(err.Error())
+		return err
+	}
+	fmt.Printf("%#v\n", res)
+	body, err := ioutil.ReadAll(res.Body)
+	//logger.Debug("DigitalOcean.Destroy.ResultCode", strconv.Itoa(res.StatusCode))
+	//logger.Debug("DigitalOcean.Destroy.Body", string(body))
+	if res.StatusCode != 204 {
+		var msg string
+		if err != nil {
+			msg = err.Error()
+		} else {
+			msg = string(body)
+		}
+		return errors.New("Cannot delete droplet : " + msg)
+	} else {
+		return nil
+	}
 }
 
 func (d *DigitalOceanDriver) Start() error {
@@ -296,6 +383,10 @@ func (d *DigitalOceanDriver) Restart() error {
 
 func (d *DigitalOceanDriver) GetBaseDriver() *BaseDriver {
 	return &d.BaseDriver
+}
+
+func (d *DigitalOceanDriver) SetBaseDriver(base BaseDriver) {
+	d.BaseDriver = base
 }
 
 // Provide some helpers functions
