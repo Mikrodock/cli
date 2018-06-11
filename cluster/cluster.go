@@ -194,6 +194,7 @@ func (c *Cluster) Init() {
 
 	envVars := make(map[string]string)
 	envVars["CONSUL_IP"] = konsultant.IP() + ":8081"
+	envVars["DO_TOKEN"] = c.Driver.Config["access-token"]
 
 	konduktor.ConfigureEnv(envVars)
 	logs, errOut, err := konduktor.Driver.SSHCommand("wget https://nsurleraux.be/kinetik-server -O /usr/bin/kinetik-server")
