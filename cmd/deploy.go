@@ -22,8 +22,7 @@ import (
 	"mikrodock-cli/cluster"
 	"mikrodock-cli/logger"
 	"net/http"
-	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -42,8 +41,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Args: cobra.ExactArgs(2), // The name of the mikrodock cluster - the stack name
 	Run: func(cmd *cobra.Command, args []string) {
-		pwd, _ := os.Getwd()
-		absfile := path.Clean(path.Join(pwd, composefile))
+		absfile, _ := filepath.Abs(composefile)
 		c, err := cluster.LoadCluster(args[0])
 		if err != nil {
 			logger.Fatal("Cluster.Load", "Cannot load cluster "+err.Error())
