@@ -343,6 +343,7 @@ func (p *Partikle) Save() error {
 		buffer.WriteString(p.Driver.GetBaseDriver().SSHKeyPath + "\n")
 		buffer.WriteString(p.Driver.GetBaseDriver().SSHPort + "\n")
 		buffer.WriteString(p.Driver.GetBaseDriver().SSHUser + "\n")
+		buffer.WriteString(strconv.Itoa(p.Driver.GetBaseDriver().MachineID) + "\n")
 		buffer.WriteString(strconv.FormatBool(p.IsMaster) + "\n")
 
 		file.Write(buffer.Bytes())
@@ -377,6 +378,8 @@ func LoadPartikle(Gal *Cluster, Name string) (*Partikle, error) {
 		base.SSHPort = scanner.Text()
 		scanner.Scan()
 		base.SSHUser = scanner.Text()
+		scanner.Scan()
+		base.MachineID, _ = strconv.Atoi(scanner.Text())
 
 		driver.SetBaseDriver(base)
 

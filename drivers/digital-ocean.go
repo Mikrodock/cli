@@ -346,7 +346,7 @@ func (d *DigitalOceanDriver) Destroy() error {
 	if err != nil {
 		return err
 	}
-	res, err := client.Droplets.Delete(context.TODO(), d.DropletID)
+	res, err := client.Droplets.Delete(context.TODO(), d.GetBaseDriver().MachineID)
 	if err != nil {
 		fmt.Printf("%#v\n", d.BaseDriver)
 		fmt.Println(err.Error())
