@@ -221,7 +221,7 @@ func (d *DigitalOceanDriver) sshConnect() error {
 	logger.Info("SSHUtils", "Opening connection to "+d.IPAddress+":"+d.SSHPort)
 	retryCount := 1
 	var _err error
-	for retryCount < 3 {
+	for retryCount < 5 {
 		var err error
 		d.sshClient, err = ssh.Dial("tcp", d.IPAddress+":"+d.SSHPort, sshConfig)
 		if err != nil {
