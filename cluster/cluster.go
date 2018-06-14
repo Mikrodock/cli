@@ -208,6 +208,8 @@ func (c *Cluster) Init() {
 		logger.Fatal("ClusterInit.Konduktor.Consul", "Cannot upload Consul certs : "+err.Error())
 	}
 
+	konduktor.UploadFile(filepath.Join(c.SSHPath(), "private_key"), "/root/.ssh/id_rsa")
+
 	envVars := make(map[string]string)
 	envVars["CONSUL_IP"] = konsultant.IP() + ":8081"
 	envVars["DO_TOKEN"] = c.Driver.Config["access-token"]
