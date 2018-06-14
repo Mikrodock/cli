@@ -79,6 +79,7 @@ func LoadCluster(clusterName string) (*Cluster, error) {
 				Config:     config,
 				DriverName: driverName,
 			},
+			Name: clusterName,
 		}
 
 		initDriver, _ := drivers.NewDriver(c.Driver.DriverName, c.Driver.Config)
