@@ -73,6 +73,9 @@ to quickly create a Cobra application.`,
 				}
 				if res.StatusCode == 200 {
 					logger.Info("Kinetik.Service", "OK!")
+				} else {
+					body, _ := ioutil.ReadAll(res.Body)
+					logger.Fatal("Kinetik.Service", res.Status+" : "+string(body))
 				}
 			}
 		}
