@@ -11,7 +11,9 @@ import (
 	"mikrodock-cli/utils"
 	consulhelpers "mikrodock-cli/utils/consul-helpers"
 	"os"
+	"os/user"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -42,8 +44,21 @@ type Cluster struct {
 func LoadCluster(clusterName string) (*Cluster, error) {
 
 	var c *Cluster
+	var dir string
 
-	dir, _ := homedir.Dir()
+	uid := os.Geteuid()
+	if uid == 0 {
+		realUser := os.Getenv("SUDO_USER")
+		if realUser != "" {
+			u, _ := user.Lookup(realUser)
+			dir = u.HomeDir
+		} else {
+			dir, _ = homedir.Dir()
+		}
+	} else {
+		dir, _ = homedir.Dir()
+	}
+
 	depDir := path.Join(dir, ".mikrodock", clusterName)
 	savePath := path.Join(depDir, "data.mk")
 	file, err := os.Open(savePath)
