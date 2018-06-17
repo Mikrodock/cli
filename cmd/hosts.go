@@ -27,14 +27,9 @@ import (
 // hostsCmd represents the hosts command
 var hostsCmd = &cobra.Command{
 	Use:   "hosts",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(2),
+	Short: "Update /etc/hosts for the cluster",
+	Long:  ``,
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		uid := os.Geteuid()
 		if uid != 0 {
@@ -73,9 +68,9 @@ func DeleteEntries(clusterName string, h goodhosts.Hosts) error {
 		}
 		if deleteThisLine {
 			h.Remove(l.IP, l.Hosts...)
-			h.Flush()
 		}
 	}
+	h.Flush()
 	return nil
 }
 

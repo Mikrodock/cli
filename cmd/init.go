@@ -29,7 +29,7 @@ var provider string
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize a MikroDock Cluster",
-	Long:  `TODO`,
+	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		dir, _ := homedir.Dir()

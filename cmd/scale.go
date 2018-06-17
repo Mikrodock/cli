@@ -21,6 +21,9 @@ import (
 	"mikrodock-cli/cluster"
 	"mikrodock-cli/logger"
 	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -28,14 +31,9 @@ import (
 // scaleCmd represents the scale command
 var scaleCmd = &cobra.Command{
 	Use:   "scale",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(4), // The name of the mikrodock cluster - the stack name - the service - UP OR DOWN
+	Short: "Scale up or down a service of a stack",
+	Long:  ``,
+	Args:  cobra.ExactArgs(5), // The name of the mikrodock cluster - the stack name - the service - UP OR DOWN - qty
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := cluster.LoadCluster(args[0])
 		if err != nil {
@@ -43,22 +41,40 @@ to quickly create a Cobra application.`,
 		} else {
 			fmt.Printf("%#v\n", c)
 		}
+
+		qty, _ := strconv.Atoi(args[4])
+
+		var wg sync.WaitGroup
+		wg.Add(qty)
+
 		for _, p := range c.Partikles {
 			if p.Name() == "konduktor" {
 				ip := p.IP()
 				logger.Info("Kinetik.Service.Scale", "http://"+ip+":10513/services/"+args[1]+"/"+args[2]+"/scale/"+args[3])
-				res, err := http.Post("http://"+ip+":10513/services/"+args[1]+"/"+args[2]+"/scale/"+args[3], "application/json", bytes.NewBuffer([]byte{}))
-				if err != nil {
-					logger.Fatal("Kinetik.Service.Post", err.Error())
+
+				for i := 0; i < qty; i++ {
+					go func(waitG *sync.WaitGroup) {
+						defer waitG.Done()
+						res, err := http.Post("http://"+ip+":10513/services/"+args[1]+"/"+args[2]+"/scale/"+args[3], "application/json", bytes.NewBuffer([]byte{}))
+						if err != nil {
+							logger.Fatal("Kinetik.Service.Post", err.Error())
+						}
+						body, _ := ioutil.ReadAll(res.Body)
+						if res.StatusCode == 200 {
+							logger.Info("Kinetik.Service", "OK! "+string(body))
+						} else {
+							logger.Fatal("Kinetik.Service", string(body))
+						}
+					}(&wg)
+
+					time.Sleep(100 * time.Millisecond)
 				}
-				body, _ := ioutil.ReadAll(res.Body)
-				if res.StatusCode == 200 {
-					logger.Info("Kinetik.Service", "OK!")
-				} else {
-					logger.Fatal("Kinetik.Service", string(body))
-				}
+
+				wg.Wait()
 			}
 		}
+
+		wg.Wait()
 	},
 }
 

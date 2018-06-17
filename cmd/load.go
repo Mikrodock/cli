@@ -15,9 +15,9 @@
 package cmd
 
 import (
+	"fmt"
 	"mikrodock-cli/cluster"
 	"mikrodock-cli/logger"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -26,13 +26,8 @@ import (
 var loadCmd = &cobra.Command{
 	Use:   "load",
 	Short: "Test reload a cluster",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(1),
+	Long:  ``,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		c, err := cluster.LoadCluster(args[0])
 		if err != nil {
